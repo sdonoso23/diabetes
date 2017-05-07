@@ -21,18 +21,26 @@ dataset<-read_csv("data/diabetes.txt",col_names=c("timespreg","plaglu",
 
 ####EXPLORATORY ANALYSIS####
 
-##check missing
-colSums(dataset==0)
-###triceps and serum have too many missing
-
 ##histograms
+plotlist<-multiplehist(dataset)
+histograms<-multiplot(plotlist = plotlist,cols=3)
+###seems to be too many values with 0 in some variables 
 
-histsplots<-multiplehist(dataset)
+##check missing
+colSums(is.na(dataset))
+colSums(dataset==0)
+###triceps and serum have too many missing as 0
 
-a<-multiplot(plotlist = lista,cols=3)
+##transform diabetes to factor
+dataset$diabetes<-factor(dataset$diabetes,levels=c(0,1))
+levels(dataset$diabetes)<-c("No","Yes")
 
 ##correlation of variables
-cor(dataset)
+corr<-as.data.frame(cor(dataset[,-9])) %>%
+    rownames_to_column(var = "var1") %>%
+    gather(timespreg:age,key = var2,value = value) 
+
+ggplot()+geom_tile(data=corr,aes(x=var1, y=var2,fill=value))
 
 ##remove rows with missing values and columns with too many missing values
 finaldataset<-dataset[dataset$plaglu!=0,]
@@ -52,20 +60,21 @@ normalize$diabetes<-finaldataset$diabetes
 ####DATASET PARTITION####
 
 ##sample partition
-partition<-binary.partition(finaldataset,c(0.70,0.15,0.15),"diabetes")
-partitionnorm<-binary.partition(normalize,c(0.70,0.15,0.15),"diabetes")
+set.seed(1234)
+trainidx<-createDataPartition(y = finaldataset$diabetes,
+                              list = FALSE,p = 0.7)
+train<-finaldataset[trainidx,]
+notrain<-finaldataset[-trainidx,]
+
+testidx<-createDataPartition(y=notrain$diabetes,list=FALSE,p=0.5)
+test<-notrain[testidx,]
+validate<-notrain[-testidx,]
 
 ##check means
-mean(partition$train$diabetes)
-mean(partition$test$diabetes)
-mean(partition$validate$diabetes)
-mean(partitionnorm$train$diabetes)
-mean(partitionnorm$test$diabetes)
-mean(partitionnorm$validate$diabetes)
+table(train$diabetes)/nrow(train)
+table(test$diabetes)/nrow(test)
+table(validate$diabetes)/nrow(validate)
 
-##transform diabetes variable to factor
-partitionnorm$train$diabetes<-as.factor(partition$train$diabetes)
-partition$train$diabetes<-as.factor(partition$train$diabetes)
 
 
 ####MODELS####
@@ -74,18 +83,20 @@ partition$train$diabetes<-as.factor(partition$train$diabetes)
 
 ##with rpart package
 
-decisiontree<-rpart(diabetes~.,data=partition$train,method="class")
-printcp(decisiontree)
+dtree<-rpart(diabetes~.,data=train,method="class")
+summary(dtree)
 
-plot(decisiontree)
-text(decisiontree,use.n=TRUE,all=TRUE,cex=0.9,)
+printcp(dtree)
 
+plot(dtree,margin=0.2)
+text(dtree,all=TRUE,use.n = TRUE,cex=0.5)
 
 confusionMatrix(data=results$dtree.prune.pred,reference=results$diabetes)
 
 ##better plot
-fancyRpartPlot(decisiontree)
-fancyRpartPlot(maxtree)
+
+rpart.plot(dtree,type=1)
+
 
 
 ##with tree package
