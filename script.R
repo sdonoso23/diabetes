@@ -1,5 +1,3 @@
-setwd("C:/Users/Administrador.000/Desktop/Sebastian/Data Science For Management/Pattern Recognition/Hackathon1")
-
 library(tidyverse)
 library(MASS)
 library(rpart)
@@ -12,9 +10,11 @@ library(rattle)
 library(rpart.plot)
 library(RColorBrewer)
 library(klaR)
+source(functions.R)
+
 
 #####LOAD DATA####
-dataset<-read_csv("diabetes.txt",col_names=c("timespreg","plaglu",
+dataset<-read_csv("data/diabetes.txt",col_names=c("timespreg","plaglu",
                                              "diastolic","triceps",
                                              "serum","bmi","diabped",
                                              "age","diabetes"))
@@ -22,7 +22,7 @@ dataset<-read_csv("diabetes.txt",col_names=c("timespreg","plaglu",
 ####EXPLORATORY ANALYSIS####
 
 ##check missing
-colSums(finaldataset==0)
+colSums(dataset==0)
 ###triceps and serum have too many missing
 
 ##histograms
@@ -39,6 +39,25 @@ histograms<-function(dataset,savefolder){
         ggsave(paste(colnames[i],".jpg",sep=""),path=savefolder,device="jpg")
     }
 }
+
+aaa<- function(data,column){
+    numeric<-map_lgl(dataset,is.numeric)
+    newdataset<-dataset[,numeric]
+    a<-ggplot(data=data,mapping=aes_string(x=column))+geom_density()+labs(x=column)
+    return(a)
+    }
+
+colnames(dataset)
+lista<-map(colnames(dataset),~aaa(dataset,.))
+
+lista[[5]]
+
+
+dataset2<-bind_cols(dataset,dataset,dataset)
+
+lista<-multiplehist(dataset)
+
+multiplot(plotlist = lista,cols=3)
 
 histograms(newdataset,"plots")
 
