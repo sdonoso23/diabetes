@@ -1,5 +1,7 @@
 library(tidyverse)
 
+
+###function to save mutiple histograms
 hist.dfnumeric<-function(dataset,savefolder){
     lista<-list()
     numeric<-map_lgl(dataset,is.numeric)
@@ -14,6 +16,7 @@ hist.dfnumeric<-function(dataset,savefolder){
     }
 }
 
+###function to generate list of histograms
 multiplehist<-function(data){
     numeric<-map_lgl(data,is.numeric)
     newdata<-data[,numeric]
@@ -26,6 +29,7 @@ multiplehist<-function(data){
     return(lista)
 }
 
+###function to plot multiple ggplots together, found on R Cookbook
 multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
     require(grid)
     
@@ -52,4 +56,35 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
                                             layout.pos.col = matchidx$col))
         }
     }
+}
+
+###function to divide dataset into train,validate and test maintaining
+###classes proportions
+binary.partition<-function(dataset,pct,variable){
+    
+    numvar<-which(colnames(dataset)=="variable")
+    dataset<-arrange_(dataset,.dots=(paste("desc(",variable,")",sep="")))
+    n<-nrow(dataset)
+    ones<-sum(dataset[,variable])
+    zeros<-nrow(dataset)-ones
+    
+    partones<-map(pct,~round(.*ones))
+    partzeros<-map(pct,~round(.*zeros))
+    
+    suma<-sum(flatten_dbl(partzeros))+sum(flatten_dbl(partones))
+    a<-cumsum(flatten_dbl(partones))
+    b<-cumsum(flatten_dbl(partzeros))
+    
+    dataones<-dataset[1:ones,]
+    datazeros<-dataset[(ones+1):nrow(dataset),]
+    
+    train<-bind_rows(dataones[1:a[1],],datazeros[1:b[1],])
+    validate<-bind_rows(dataones[(a[1]+1):a[2],],
+                        datazeros[(b[1]+1):b[2],])
+    test<-bind_rows(dataones[(a[2]+1):nrow(dataones),],
+                    datazeros[(b[2]+1):nrow(datazeros),])
+    
+    lista<-list(train,validate,test)
+    names(lista)<-c("train","validate","test")
+    return(lista)
 }

@@ -10,7 +10,7 @@ library(rattle)
 library(rpart.plot)
 library(RColorBrewer)
 library(klaR)
-source(functions.R)
+source("r/functions.R")
 
 
 #####LOAD DATA####
@@ -26,49 +26,13 @@ colSums(dataset==0)
 ###triceps and serum have too many missing
 
 ##histograms
-histograms<-function(dataset,savefolder){
-    lista<-list()
-    numeric<-map_lgl(dataset,is.numeric)
-    newdataset<-dataset[,numeric]
-    colnames<-colnames(newdataset)
-    n<-length(newdataset)
-    dir.create(file.path(getwd(),savefolder), showWarnings = FALSE)
 
-    for(i in 1:n){
-        a<-ggplot(mapping=aes(x=newdataset[,i]))+geom_density()+labs(x=colnames[i])    
-        ggsave(paste(colnames[i],".jpg",sep=""),path=savefolder,device="jpg")
-    }
-}
+histsplots<-multiplehist(dataset)
 
-aaa<- function(data,column){
-    numeric<-map_lgl(dataset,is.numeric)
-    newdataset<-dataset[,numeric]
-    a<-ggplot(data=data,mapping=aes_string(x=column))+geom_density()+labs(x=column)
-    return(a)
-    }
-
-colnames(dataset)
-lista<-map(colnames(dataset),~aaa(dataset,.))
-
-lista[[5]]
-
-
-dataset2<-bind_cols(dataset,dataset,dataset)
-
-lista<-multiplehist(dataset)
-
-multiplot(plotlist = lista,cols=3)
-
-histograms(newdataset,"plots")
+a<-multiplot(plotlist = lista,cols=3)
 
 ##correlation of variables
 cor(dataset)
-
-##boxplot
-boxplot(dataset$timespreg)
-boxplot(dataset$plaglu)
-boxplot(dataset$diastolic)
-boxplot(dataset$triceps)
 
 ##remove rows with missing values and columns with too many missing values
 finaldataset<-dataset[dataset$plaglu!=0,]
@@ -88,35 +52,6 @@ normalize$diabetes<-finaldataset$diabetes
 ####DATASET PARTITION####
 
 ##sample partition
-binary.partition<-function(dataset,pct,variable){
-    
-    numvar<-which(colnames(dataset)=="variable")
-    dataset<-arrange_(dataset,.dots=(paste("desc(",variable,")",sep="")))
-    n<-nrow(dataset)
-    ones<-sum(dataset[,variable])
-    zeros<-nrow(dataset)-ones
-
-    partones<-map(pct,~round(.*ones))
-    partzeros<-map(pct,~round(.*zeros))
-
-    suma<-sum(flatten_dbl(partzeros))+sum(flatten_dbl(partones))
-    a<-cumsum(flatten_dbl(partones))
-    b<-cumsum(flatten_dbl(partzeros))
-    
-    dataones<-dataset[1:ones,]
-    datazeros<-dataset[(ones+1):nrow(dataset),]
-
-    train<-bind_rows(dataones[1:a[1],],datazeros[1:b[1],])
-    validate<-bind_rows(dataones[(a[1]+1):a[2],],
-                    datazeros[(b[1]+1):b[2],])
-    test<-bind_rows(dataones[(a[2]+1):nrow(dataones),],
-                    datazeros[(b[2]+1):nrow(datazeros),])
-    
-    lista<-list(train,validate,test)
-    names(lista)<-c("train","validate","test")
-    return(lista)
-}
-
 partition<-binary.partition(finaldataset,c(0.70,0.15,0.15),"diabetes")
 partitionnorm<-binary.partition(normalize,c(0.70,0.15,0.15),"diabetes")
 
