@@ -32,8 +32,9 @@ colSums(dataset==0)
 ###triceps and serum have too many missing as 0
 
 ##transform diabetes to factor
-dataset$diabetes<-factor(dataset$diabetes,levels=c(0,1))
-levels(dataset$diabetes)<-c("No","Yes")
+dataset$diabetes<-factor(dataset$diabetes,levels=c(0,1)
+                         ,labels = c("No","Yes"))
+
 
 ##correlation of variables
 corr<-as.data.frame(cor(dataset[,-9])) %>%
@@ -80,18 +81,23 @@ table(validate$diabetes)/nrow(validate)
 ####MODELS####
 
 ####DECISION TREE#####
-
-##with rpart package
+#define tree with function defaults: 
+#gini as splitting criteria, priors defined by sample, 
+#loss with value 1
+#20 as minimum obs for a node to be splitted
+#20/3 as minimum obs in a terminal node
+#0.01 as minimum increase of fit for a split to be performed
 
 dtree<-rpart(diabetes~.,data=train,method="class")
 summary(dtree)
+
+##print results of 10-fold cross validation
+##
 
 printcp(dtree)
 
 plot(dtree,margin=0.2)
 text(dtree,all=TRUE,use.n = TRUE,cex=0.5)
-
-confusionMatrix(data=results$dtree.prune.pred,reference=results$diabetes)
 
 ##better plot
 
