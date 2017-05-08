@@ -78,9 +78,16 @@ trainidx<-createDataPartition(y = finaldataset$diabetes,
 train<-finaldataset[trainidx,]
 notrain<-finaldataset[-trainidx,]
 
+set.seed(1234)
 testidx<-createDataPartition(y=notrain$diabetes,list=FALSE,p=0.5)
 test<-notrain[testidx,]
 validate<-notrain[-testidx,]
+
+normtrain<-normalize[trainidx,]
+normnotrain<-normalize[-trainidx,]
+normtest<-normnotrain[testidx,]
+normvalidate<-normnotrain[-testidx,]
+
 
 ##check means
 table(train$diabetes)/nrow(train)
@@ -103,6 +110,7 @@ plot(dtree,margin=0.2)
 text(dtree,all=TRUE,use.n = TRUE,cex=0.5)
 dtree.pred<-predict(dtree,validate,type = "class")
 confusionMatrix(data=dtree.pred,reference = validate$diabetes,positive="Yes")
+#73.21
 
 ##print results of 10-fold cross validation
 #search for the tree with the lowest xerror and then choose
@@ -114,20 +122,18 @@ plot(dtree.prune,margin=0.2)
 text(dtree.prune,all=TRUE,use.n = TRUE,cex=0.5)
 dtree.prune.pred<-predict(dtree.prune,validate,type="class")
 confusionMatrix(data=dtree.prune.pred,reference = validate$diabetes,positive="Yes")
+#77.68
 
 ##with tree package
 dtree2<-tree(diabetes~.,data=train,method = "class")
 summary(dtree2)
 plot(dtree2)
 text(dtree2,pretty=0)
-###training misclassifcation = 20.3%
 
 ##prediction on test dataset
 dtree2.pred<-predict(dtree2,validate,type="class")
 confusionMatrix(data=dtree2.pred,reference=validate$diabetes,positive="Yes")
-
-## test missclassifcation = 25.8%
-
+#77.68
 
 ##crossvalidation to find minimum error tree 
 cv.dtree2<-cv.tree(dtree2,FUN=prune.misclass)
@@ -141,28 +147,31 @@ plot(dtree.prune)
 text(dtree.prune,pretty=0)
 
 ##prediction on test dataset
-dtree2.prune.pred<-predict(dtree.prune2,validate,type="class")
+dtree2.prune.pred<-predict(dtree2.prune,validate,type="class")
 confusionMatrix(data=dtree2.prune.pred,reference=validate$diabetes,positive="Yes")
-
+#77.68
 #####KNN no normalized#####
-lista<-list()
-missrate<-c()
+knn.pred<-list()
+knn.missrate<-c()
 
 for (i in 1:25){
-    a<-knn(train = train[,-7],test=validate[,-7],k = i,cl=train$diabetes)
-    lista[[i]]<-a
-    missrate[i]<-mean(ifelse(lista[[i]]==validate$diabetes,FALSE,TRUE))
+    a<-knn(train = normtrain[,-7],test=normvalidate[,-7],k = i,cl=normtrain$diabetes)
+    knn.pred[[i]]<-a
+    knn.missrate[i]<-mean(ifelse(knn.pred[[i]]==normvalidate$diabetes,FALSE,TRUE))
     }
     
 vector<-c(1:25)
-plot(vector,missrate)
-###lowest probability with k=17
-confusionMatrix(data=lista[[17]],reference=validate$diabetes,positive="Yes")
+names(knn.pred)<-paste("K=",c(1:25),sep="")
+plot(vector,knn.missrate)
 
+###lowest missclassification with k=7
+confusionMatrix(data=knn.pred[[7]],reference=normvalidate$diabetes,positive="Yes")
+#77.68
 
 
 #####NAIVE BAYES####
 
+#73.21
 ##separate variables in x and y
 
 naivetrain<-train[,-7]
@@ -175,7 +184,10 @@ confusionMatrix(data=naive.pred,reference=validate$diabetes,positive="Yes")
 
 ###LOGIT###
 
+#80.36
+
 logit<-glm(diabetes~.,data=train,family=binomial(link=logit))
+summary(logit)
 logit.pred<-predict(logit,newdata = validate,type="response")
 logit.pred.class<-ifelse(logit.pred>0.5,"Yes","No")
 confusionMatrix(data=logit.pred.class,reference=validate$diabetes,positive="Yes")
