@@ -1,4 +1,5 @@
 library(tidyverse)
+library(caret)
 
 
 ###function to save mutiple histograms
@@ -87,4 +88,37 @@ binary.partition<-function(dataset,pct,variable){
     lista<-list(train,validate,test)
     names(lista)<-c("train","validate","test")
     return(lista)
+}
+
+###function to compare classification models with binary targets
+comparisondf<-function(cmlist,modelnames){
+    aux<-function(cm){
+        lista<-map(cm,as.data.frame)
+        a<-list(lista$table[1,3],lista$table[2,3],lista$table[3,3],lista$table[4,3])
+        names(a)<-c("TN","FP","FN","TP")
+        b<-rownames_to_column(lista$overall) %>%
+            spread(rowname,value = ".x[[i]]")
+        c<-rownames_to_column(lista$byClass) %>%
+            spread(rowname,value = ".x[[i]]")
+        d<-bind_cols(a,b,c)
+        return(d)
+    }
+    aaa<-map(cmlist,aux)
+    df<-map_df(aaa,bind_rows)
+    df<-add_column(df,modelnames,.before="TN") %>%
+        rename(Model=modelnames)
+    return(df)
+}
+
+
+logloss<-function(pred,actual){
+    minvalue<-0.00000000000001
+    newpred<-pmax(pmin(pred,1-minvalue),minvalue)
+    logloss<--(1/length(newpred))*sum(actual*log(newpred)+(1-actual)*log(1-newpred))
+    return(logloss)
+}
+
+logloss2<-function(newpred,actual){
+    logloss<--(1/length(newpred))*sum(actual*log(newpred)+(1-actual)*log(1-newpred))
+    return(logloss)
 }
