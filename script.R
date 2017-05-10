@@ -156,6 +156,7 @@ knn.pred<-list()
 knn.missrate<-c()
 
 for (i in 1:25){
+    set.seed(1234)
     a<-knn(train = normtrain[,-7],test=normvalidate[-7],k = i,cl=normtrain$diabetes)
     knn.pred[[i]]<-a
     knn.missrate[i]<-mean(ifelse(knn.pred[[i]]==normvalidate$diabetes,FALSE,TRUE))
@@ -181,8 +182,8 @@ knn.out
 naivetrain<-train[,-7]
 naivelabels<-train$diabetes
 
+set.seed(1234)
 naive<-train(naivetrain,naivelabels,"nb",trControl=trainControl(method="cv",number=10))
-
 naive.pred<-predict(naive,newdata = validate)
 naive.out<-confusionMatrix(data=naive.pred,reference=validate$diabetes,positive="Yes")
 naive.out
@@ -218,7 +219,7 @@ naive.pred$prob<-ifelse(naive.pred$class=="Yes",naive.pred$Yes,naive.pred$No)
 naive.pred$newprob<-pmin(pmax(naive.pred$prob,1e-15),1-1e-15)
 naive.pred$log<-naive.pred$actual*log(naive.pred$newprob)+(1-naive.pred$actual)*log(1-naive.pred$newprob)
 
-View(naive.pred)
+
 logloss(naive.pred$prob,naive.pred$actual)
 
 ###knn
@@ -258,25 +259,34 @@ knn.caret<-train(diabetes~.,data=train,method="knn",preProcess=c("center","scale
                  trControl=fitcontrol,tuneGrid=knngrid)
 
 
-knn.caret.pred<-predict(knn.caret,newdata=notrain,type="raw")
-knn.caret.out<-confusionMatrix(knn.caret.pred,reference=notrain$diabetes,positive="Yes")
+knn.caret.pred<-predict(knn.caret,newdata=validate)
+knn.caret.out<-confusionMatrix(knn.caret.pred,reference=validate$diabetes,positive="Yes")
 
 
 ###rpart
 set.seed(1234)
 rpart.caret<-train(diabetes~.,data=train,method="rpart",trControl=fitcontrol,tuneLength=30)
-rpart.caret.pred<-predict(rpart.caret,newdata=notrain,type="raw")
-rpart.caret
-rpart.caret.out<-confusionMatrix(rpart.caret.pred,reference=notrain$diabetes,positive="Yes")
+rpart.caret.pred<-predict(rpart.caret,newdata=validate)
+rpart.caret.out<-confusionMatrix(rpart.caret.pred,reference=validate$diabetes,positive="Yes")
 
 ###naivebayes
 set.seed(1234)
 naive.caret<-train(diabetes~.,data=train,method="nb",trControl=fitcontrol,tuneLength=30)
-naive.caret
-naive.caret.pred<-predict(naive.caret,newdata=notrain,type="prob")
-naive.caret.out<-confusionMatrix(rpart.caret.pred,reference=notrain$diabetes,positive="Yes")
+naive.caret.pred<-predict(naive.caret,newdata=validate)
+naive.caret.out<-confusionMatrix(naive.caret.pred,reference=validate$diabetes,positive="Yes")
 
-complist<-list(knn.caret.out,rpart.caret.out,naive.caret.out)
-carmod<-c("KNN","Decision Tree","Naive Bayes")
-caretcomp<-comparisondf(complist,carmod)
-caretcomp
+
+##random forest
+set.seed(1234)
+rf.caret<- train(diabetes~., data=train, method="rf", trControl=fitcontrol,tuneLength=6,
+                 preProcess=c("center","scale"))
+rf.caret.pred<-predict(rf.caret,newdata=validate)
+rf.caret.out<-confusionMatrix(rf.caret.pred,reference=validate$diabetes,positive="Yes")
+
+complist<-list(knn.caret.out,knn.out,rpart.caret.out,dtree.prune.out,
+               naive.caret.out,naive.out,rf.caret.out)
+carmod<-c("Caret KNN","KNN","Caret Decision Tree","Decision Tree", 
+          "Caret Naive Bayes","Naive Bayes","Random Forest Caret")
+
+totalcomp<-comparisondf(complist,carmod)
+totalcomp
