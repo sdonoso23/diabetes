@@ -290,3 +290,10 @@ carmod<-c("Caret KNN","KNN","Caret Decision Tree","Decision Tree",
 
 totalcomp<-comparisondf(complist,carmod)
 totalcomp
+
+
+
+#model chosen
+rpart.caret.pred2<-predict(rpart.caret,newdata=test)
+confusionMatrix(rpart.caret.pred2,reference=test$diabetes,positive="Yes")
+

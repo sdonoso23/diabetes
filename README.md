@@ -1,3 +1,3 @@
 # diabetes
 
-Analysis of diabetes experiment on Puni, India
+Analysis of diabetes propensity on Pima Indians
